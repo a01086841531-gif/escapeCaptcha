@@ -1,0 +1,460 @@
+/* ─── Escape Room Container ─────────────── */
+.escapeRoom {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0a0f;
+}
+
+.roomImageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.roomImage {
+  object-fit: cover;
+  filter: brightness(0.7) contrast(1.1);
+  transition: filter var(--transition-slow);
+}
+
+/* Dark vignette overlay */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Header Bar ─────────────── */
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+}
+
+.headerTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--gold);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerTitle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.hint svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+/* ─── Clickable Hot Spots ─────────────── */
+.hotspot {
+  position: absolute;
+  z-index: 5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+}
+
+.hotspotInner {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.12);
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  animation: glow 2.5s ease-in-out infinite;
+}
+
+.hotspotInner svg {
+  width: 24px;
+  height: 24px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.5));
+}
+
+.hotspot:hover .hotspotInner {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: var(--gold);
+  transform: scale(1.15);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+}
+
+/* Ripple effect */
+.hotspotRipple {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  animation: rippleExpand 2.5s ease-out infinite;
+}
+
+@keyframes rippleExpand {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.hotspotLabel {
+  position: absolute;
+  bottom: -28px;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 10px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all var(--transition-normal);
+}
+
+.hotspot:hover .hotspotLabel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Modal Overlay ─────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  padding: 20px;
+}
+
+.modalContent {
+  background: linear-gradient(145deg, #14141e, #1a1a28);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.8),
+    0 0 80px rgba(212, 175, 55, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: slideUp 0.4s ease;
+  position: relative;
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.modalClose:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modalClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.modalTitle {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  color: var(--gold);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modalTitle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.modalDesc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+/* ─── Captcha Shared Styles ─────────────── */
+.captchaArea {
+  margin-bottom: 24px;
+}
+
+.captchaSubmitBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  border: none;
+  border-radius: 12px;
+  color: #0a0a0f;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.captchaSubmitBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.captchaSubmitBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.35);
+}
+
+.captchaSubmitBtn:hover::before {
+  transform: translateX(100%);
+}
+
+.captchaInput {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  transition: all var(--transition-normal);
+  outline: none;
+  text-align: center;
+  letter-spacing: 3px;
+}
+
+.captchaInput::placeholder {
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.captchaInput:focus {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+}
+
+/* ─── Bookshelf Captcha ─────────────── */
+.bookshelf {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px 16px;
+  background: linear-gradient(to bottom, rgba(80, 50, 20, 0.2), rgba(60, 35, 15, 0.3));
+  border-radius: 12px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+  margin-bottom: 16px;
+  position: relative;
+  min-height: 200px;
+}
+
+.bookshelf::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+  background: linear-gradient(to bottom, rgba(100, 60, 25, 0.5), rgba(60, 35, 15, 0.3));
+  border-radius: 0 0 8px 8px;
+}
+
+.book {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 6px 6px 4px;
+  position: relative;
+  min-width: 48px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transition: transform var(--transition-normal);
+  cursor: default;
+  box-shadow: 
+    2px 2px 6px rgba(0, 0, 0, 0.4),
+    inset -2px 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.book:hover {
+  transform: translateY(-6px);
+}
+
+.bookNumber {
+  writing-mode: horizontal-tb;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.bookshelfHint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bookshelfHint svg {
+  width: 14px;
+  height: 14px;
+  color: var(--gold);
+}
+
+/* ─── Korean Keyboard Captcha ─────────────── */
+.keyboardChallenge {
+  text-align: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+.koreanText {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  font-family: var(--font-body);
+}
+
+.keyboardHint {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ─── Symbol Count Captcha ─────────────── */
+.symbolGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+.symbolCell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  user-select: none;
+}
+
+.symbolQuestion {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.symbolQuestion span {
+  font-size: 1.2rem;
+}
+
+.targetSymbol {
+  color: var(--gold);
+  font-size: 1.3rem;
+}
+
+/* ─── Error shake animation ─────────────── */
+.shakeError {
+  animation: shake 0.5s ease;
+}
+
+/* ─── Success/Fail flash ─────────────── */
+.successFlash {
+  border-color: var(--emerald) !important;
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.2) !important;
+}
+
+.failFlash {
+  border-color: var(--crimson-light) !important;
+  box-shadow: 0 0 20px rgba(196, 30, 58, 0.2) !important;
+}

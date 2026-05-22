@@ -1,0 +1,179 @@
+/* ─── Overlay ─────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayIn 0.3s ease;
+  padding: 20px;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Modal ─────────────── */
+.modal {
+  background: linear-gradient(145deg, #14141e, #1a1a28);
+  border-radius: 24px;
+  padding: 48px 40px 36px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  animation: modalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 24px 24px 0 0;
+}
+
+.success {
+  border: 1px solid rgba(46, 204, 113, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(46, 204, 113, 0.08);
+}
+
+.success::before {
+  background: linear-gradient(90deg, #2ecc71, #27ae60, #2ecc71);
+}
+
+.fail {
+  border: 1px solid rgba(196, 30, 58, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(196, 30, 58, 0.08);
+}
+
+.fail::before {
+  background: linear-gradient(90deg, #c41e3a, #e74c3c, #c41e3a);
+}
+
+@keyframes modalPop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ─── Animated SVG Icon ─────────────── */
+.iconWrap {
+  margin-bottom: 24px;
+}
+
+.icon {
+  width: 72px;
+  height: 72px;
+}
+
+.iconCircle {
+  fill: none;
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-miterlimit: 10;
+  animation: circleStroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.success .iconCircle {
+  stroke: #2ecc71;
+}
+
+.fail .iconCircle {
+  stroke: #c41e3a;
+}
+
+.iconCheck {
+  fill: none;
+  stroke: #2ecc71;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+}
+
+.iconX {
+  fill: none;
+  stroke: #c41e3a;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 56;
+  stroke-dashoffset: 56;
+  animation: checkStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+}
+
+@keyframes circleStroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes checkStroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+/* ─── Text ─────────────── */
+.title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.success .title {
+  color: #2ecc71;
+}
+
+.fail .title {
+  color: #c41e3a;
+}
+
+.message {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+/* ─── Button ─────────────── */
+.closeBtn {
+  padding: 12px 40px;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.success .closeBtn {
+  background: linear-gradient(135deg, #1a8a4a, #2ecc71);
+  color: #fff;
+}
+
+.success .closeBtn:hover {
+  box-shadow: 0 4px 20px rgba(46, 204, 113, 0.3);
+  transform: translateY(-1px);
+}
+
+.fail .closeBtn {
+  background: linear-gradient(135deg, #8b0000, #c41e3a);
+  color: #fff;
+}
+
+.fail .closeBtn:hover {
+  box-shadow: 0 4px 20px rgba(196, 30, 58, 0.3);
+  transform: translateY(-1px);
+}
