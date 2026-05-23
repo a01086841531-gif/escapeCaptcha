@@ -8,15 +8,31 @@ import json
 import time
 import random
 import string
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional, Dict, Any, List
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+)
+
+from mouse_tracker import MouseTracker
+from selenium_actions import random_delay, click_element, drag_element
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(name)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ── 설정 ──────────────────────────────────────────────────
 URL         = "http://localhost:3000"
@@ -24,30 +40,44 @@ OUTPUT_DIR  = Path("dataset/bot")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── 기록 저장소 ───────────────────────────────────────────
-session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-start_time = time.time()
-events     = []
+session_id: str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+start_time: float = time.time()
+events: List[Dict[str, Any]] = []
 
-def record(event_type, x=None, y=None, extra=None):
-    """이벤트 하나를 타임스탬프와 함께 기록한다."""
-    entry = {
+def record(event_type: str, x: Optional[int] = None, y: Optional[int] = None, extra: Optional[Dict[str, Any]] = None) -> None:
+    """
+    이벤트 하나를 타임스탬프와 함께 기록한다.
+    
+    Args:
+        event_type: 이벤트 타입 (page_load, modal_appeared, click, mouse_move 등)
+        x: X 좌표 (선택사항)
+        y: Y 좌표 (선택사항)
+        extra: 추가 정보 딕셔너리 (선택사항)
+    """
+    entry: Dict[str, Any] = {
         "seq":        len(events),
         "type":       event_type,
         "timestamp":  round(time.time(), 3),
         "elapsed_ms": round((time.time() - start_time) * 1000),
     }
-    if x is not None: entry["x"] = x
-    if y is not None: entry["y"] = y
-    if extra:         entry["extra"] = extra
+    if x is not None: 
+        entry["x"] = x
+    if y is not None: 
+        entry["y"] = y
+    if extra:         
+        entry["extra"] = extra
+    
     events.append(entry)
-    print(f"  [{entry['seq']:03d}] {event_type:12s}  "
-          f"{'(' + str(x) + ',' + str(y) + ')' if x is not None else ''}")
+    logger.debug(f"[{entry['seq']:03d}] {event_type:12s} " + 
+                 (f"({x},{y})" if x is not None and y is not None else ""))
 
 # ── 드라이버 생성 ─────────────────────────────────────────
 options = webdriver.ChromeOptions()
 options.add_argument("--window-size=1280,800")
 driver = webdriver.Chrome(options=options)
 wait   = WebDriverWait(driver, 10)
+
+logger.info(f"Session started: {session_id}")
 
 try:
     # 1) 페이지 접속
@@ -104,19 +134,37 @@ try:
     # 응답 대기 (성공 또는 실패)
     time.sleep(1)
 
+except TimeoutException as e:
+    record("error", extra={"type": "TimeoutException", "reason": str(e)})
+    logger.error(f"TimeoutException: {e}")
+except NoSuchElementException as e:
+    record("error", extra={"type": "NoSuchElementException", "reason": str(e)})
+    logger.error(f"NoSuchElementException: {e}")
+except StaleElementReferenceException as e:
+    record("error", extra={"type": "StaleElementReferenceException", "reason": str(e)})
+    logger.error(f"StaleElementReferenceException: {e}")
 except Exception as e:
-    record("error", extra={"reason": str(e)})
-    print(f"\n오류 발생: {e}")
+    record("error", extra={"type": type(e).__name__, "reason": str(e)})
+    logger.exception(f"Unexpected error: {e}")
 
 finally:
     # 8) JSON 저장
-    out = OUTPUT_DIR / f"session_{session_id}.json"
-    with open(out, "w", encoding="utf-8") as f:
-        json.dump({
-            "session_id": session_id,
-            "start_time": round(start_time, 3),
-            "total":      len(events),
-            "events":     events,
-        }, f, ensure_ascii=False, indent=2)
-    print(f"\n저장 완료: {out}  (이벤트 {len(events)}개)")
-    driver.quit()
+    try:
+        out = OUTPUT_DIR / f"session_{session_id}.json"
+        with open(out, "w", encoding="utf-8") as f:
+            json.dump({
+                "session_id": session_id,
+                "start_time": round(start_time, 3),
+                "total":      len(events),
+                "events":     events,
+            }, f, ensure_ascii=False, indent=2)
+        logger.info(f"Session saved: {out} (events: {len(events)})")
+    except PermissionError:
+        logger.error(f"Permission denied when saving to {out}")
+    except IOError as e:
+        logger.error(f"I/O error while saving to {out}: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error while saving: {e}")
+    finally:
+        driver.quit()
+        logger.info("WebDriver closed")

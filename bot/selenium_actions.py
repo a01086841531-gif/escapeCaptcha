@@ -6,7 +6,7 @@ collect_bot_data.py 에서 import 해서 사용한다.
 import time
 import random
 import logging
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -23,8 +23,13 @@ from selenium.common.exceptions import (
 # 로깅 설정
 logger = logging.getLogger(__name__)
 
+# 타입 정의
+Coordinate = Union[int, float]
+CoordinateTuple = Tuple[int, int]
+DragResult = Tuple[int, int, int, int, int]
 
-def random_delay(min_ms: float = 200, max_ms: float = 600) -> None:
+
+def random_delay(min_ms: Coordinate = 200, max_ms: Coordinate = 600) -> None:
     """
     랜덤 딜레이 (사람처럼 보이기 위함)
     
@@ -46,14 +51,14 @@ def random_delay(min_ms: float = 200, max_ms: float = 600) -> None:
     time.sleep(delay_sec)
 
 
-def random_move(driver: WebDriver, cx: int, cy: int, steps: int = 5) -> Optional[List[Tuple[int, int]]]:
+def random_move(driver: WebDriver, cx: Coordinate, cy: Coordinate, steps: int = 5) -> Optional[List[CoordinateTuple]]:
     """
     현재 위치 근처를 랜덤하게 흔들다가 목표 좌표로 이동.
     
     Args:
         driver: Selenium WebDriver 인스턴스
-        cx: 목표 X 좌표
-        cy: 목표 Y 좌표
+        cx: 목표 X 좌표 (int 또는 float)
+        cy: 목표 Y 좌표 (int 또는 float)
         steps: 이동 단계 수 (기본값 5)
         
     Returns:
@@ -77,7 +82,7 @@ def random_move(driver: WebDriver, cx: int, cy: int, steps: int = 5) -> Optional
     
     try:
         ac = ActionChains(driver)
-        path = []
+        path: List[CoordinateTuple] = []
         
         for _ in range(steps):
             ox = random.randint(-60, 60)
@@ -102,7 +107,7 @@ def random_move(driver: WebDriver, cx: int, cy: int, steps: int = 5) -> Optional
 
 
 
-def click_element(driver: WebDriver, selector: str) -> Optional[Tuple[int, int]]:
+def click_element(driver: WebDriver, selector: str) -> Optional[CoordinateTuple]:
     """
     CSS 셀렉터로 버튼을 찾아 사람처럼 이동 후 클릭.
     
@@ -167,7 +172,7 @@ def click_element(driver: WebDriver, selector: str) -> Optional[Tuple[int, int]]
 
 
 
-def drag_element(driver: WebDriver, handle_sel: str, target_sel: str) -> Optional[Tuple[int, int, int, int, int]]:
+def drag_element(driver: WebDriver, handle_sel: str, target_sel: str) -> Optional[DragResult]:
     """
     handle 요소를 target 위치로 드래그.
     
