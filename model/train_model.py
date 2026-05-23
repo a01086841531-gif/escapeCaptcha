@@ -11,7 +11,7 @@ import pickle
 import sys
 import logging
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional
 
 # ── Import 안정화 ────────────────────────────────────────
 try:
@@ -41,6 +41,11 @@ logger = logging.getLogger(__name__)
 MODEL_DIR   = Path(__file__).parent
 FEATURES_CSV = MODEL_DIR / "features.csv"
 MODEL_PKL    = MODEL_DIR / "classifier.pkl"
+
+# feature_extraction.py에서 생성되는 칼럼:
+#   - file: 파일 이름 (분류에 사용 안 함)
+#   - label: bot 또는 human (분류 타겟)
+#   - avg_speed, total_dist, direction_changes, click_gap_mean, click_gap_std, duration_sec (features)
 
 FEATURES = [
     "avg_speed",
@@ -99,14 +104,17 @@ if missing_features:
 # 데이터 타입 검증 및 결측치 확인
 try:
     X = df[FEATURES].copy()
+    y_raw = df["label"].copy()
     
     # NaN 값 확인
     if X.isnull().any().any():
         null_counts = X.isnull().sum()
         logger.warning(f"결측치 발견: {null_counts[null_counts > 0].to_dict()}")
         logger.info("결측치 행 제거 중...")
-        X = X.dropna()
-        df = df.loc[X.index]
+        # NaN이 있는 행 마스크 생성
+        valid_mask = ~X.isnull().any(axis=1)
+        X = X.loc[valid_mask].copy()
+        y_raw = y_raw.loc[valid_mask].copy()
     
     # 데이터 타입 변환
     X = X.astype(float)
@@ -116,7 +124,8 @@ except (KeyError, ValueError, TypeError) as e:
     sys.exit(1)
 
 try:
-    y = (df["label"] == "human").astype(int)   # bot=0, human=1
+    # label을 숫자로 변환: bot=0, human=1
+    y = (y_raw == "human").astype(int)
 except Exception as e:
     logger.error(f"라벨 변환 오류: {e}")
     sys.exit(1)
@@ -124,7 +133,7 @@ except Exception as e:
 # 데이터 분포 확인
 bot_count = (y == 0).sum()
 human_count = (y == 1).sum()
-logger.info(f"데이터: {len(df)}행 (bot {bot_count}개 / human {human_count}개)")
+logger.info(f"필터링 후 데이터: {len(X)}행 (bot {bot_count}개 / human {human_count}개)")
 
 # 최소 데이터 검증
 if len(df) < 4:

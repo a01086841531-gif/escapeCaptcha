@@ -48,11 +48,15 @@ def extract(json_path: Path, label: str) -> Optional[Dict[str, Any]]:
     Parameters
     ----------
     json_path : JSON 파일 경로
-    label     : "bot" 또는 "human"
+    label     : "bot" 또는 "human" (문자열, train_model.py에서 숫자로 변환)
     
     Returns
     -------
     Dict 또는 None (추출 실패 시)
+        반환되는 dict의 키:
+        - file: 파일 이름 (train_model.py에서 사용 안 함)
+        - label: "bot" 또는 "human" (문자열)
+        - avg_speed, total_dist, direction_changes, click_gap_mean, click_gap_std, duration_sec: feature 값들
     """
     try:
         data   = json.loads(json_path.read_text(encoding="utf-8"))
@@ -194,6 +198,12 @@ def build_dataframe() -> pd.DataFrame:
     -------
     pd.DataFrame
         추출된 feature들의 데이터프레임
+        칼럼: file, label, avg_speed, total_dist, direction_changes, click_gap_mean, click_gap_std, duration_sec
+        
+    주의:
+        - label은 "bot" 또는 "human" 문자열
+        - train_model.py에서 label을 숫자로 변환: bot=0, human=1
+        - file 칼럼은 train_model.py의 분류에 사용되지 않음 (참고용)
     """
     rows: List[Dict[str, Any]] = []
     
@@ -218,16 +228,25 @@ def build_dataframe() -> pd.DataFrame:
         
         logger.info(f"'{label}' 폴더에서 {len(json_files)}개 파일 처리 중...")
         
+        success_count = 0
+        skip_count = 0
+        error_count = 0
+        
         for path in json_files:
             try:
                 result = extract(path, label)
                 if result is not None:
                     rows.append(result)
-                    logger.info(f"  [OK] {label}/{path.name}")
+                    success_count += 1
+                    logger.debug(f"  [OK] {label}/{path.name}")
                 else:
-                    logger.warning(f"  [SKIP] {label}/{path.name}: feature 추출 실패")
+                    skip_count += 1
+                    logger.debug(f"  [SKIP] {label}/{path.name}: feature 추출 실패")
             except Exception as e:
-                logger.error(f"  [ERROR] {label}/{path.name}: {e}")
+                error_count += 1
+                logger.debug(f"  [ERROR] {label}/{path.name}: {e}")
+        
+        logger.info(f"'{label}' 처리 완료: {success_count}개 성공, {skip_count}개 스킵, {error_count}개 오류")
 
     if not rows:
         logger.warning("추출된 feature가 없습니다. 데이터를 확인하세요.")
