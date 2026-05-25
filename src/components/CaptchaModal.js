@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowRight, Info } from 'lucide-react';
 import styles from './EscapeRoom.module.css';
+import useEventLogger from '../utils/useEventLogger';
 
 /* ────────────────────────────────────────────
    한영 변환 매핑 테이블
@@ -118,6 +119,9 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
   const [userInput, setUserInput] = useState('');
   const [shaking, setShaking] = useState(false);
   const [attempts, setAttempts] = useState(0);
+
+  // Attach global event logger while the modal is mounted
+  useEventLogger();
 
   // Generate problem data once
   const problem = useMemo(() => {
