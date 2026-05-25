@@ -65,12 +65,14 @@ export default function Home() {
           setResult({ type: 'success', message });
         }
       } else {
+        console.log('[LOGIN] 로그인 시도:', email);
         const { data, error } = await sb.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) {
+<<<<<<< HEAD
           // 자동 테스트 계정 생성/로그인 흐름: 개발용으로만 사용
           if (email === 'test123@test.com' && password === 'test123') {
             // 개발용: 서버에서 서비스 키로 사용자 생성(확인 완료) 후 재로그인
@@ -98,7 +100,42 @@ export default function Home() {
           } else {
             setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
           }
+=======
+          console.error('[LOGIN] 로그인 오류:', error);
+          setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
+>>>>>>> eefba6f (backup before mongodb debug)
         } else {
+          console.log('[LOGIN] 로그인 성공, MongoDB 저장 시작');
+          
+          try {
+            const apiResponse = await fetch("/api", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                session_id: Date.now().toString(),
+                email,
+                events: [
+                  {
+                    type: "test_click",
+                    x: 100,
+                    y: 200,
+                  },
+                ],
+              }),
+            });
+            
+            const apiData = await apiResponse.json();
+            console.log('[API] 응답:', apiData);
+            
+            if (!apiResponse.ok) {
+              console.error('[API] 에러 상태:', apiResponse.status, apiData);
+            }
+          } catch (fetchErr) {
+            console.error('[FETCH] 요청 실패:', fetchErr);
+          }
+
           setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
         }
       }
