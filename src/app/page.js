@@ -71,7 +71,33 @@ export default function Home() {
         });
 
         if (error) {
-          setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
+          // 자동 테스트 계정 생성/로그인 흐름: 개발용으로만 사용
+          if (email === 'test123@test.com' && password === 'test123') {
+            // 개발용: 서버에서 서비스 키로 사용자 생성(확인 완료) 후 재로그인
+            try {
+              const resp = await fetch('/api/dev/create-test-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+              });
+              const json = await resp.json();
+              if (!resp.ok) {
+                setResult({ type: 'fail', message: '테스트 계정 생성 실패: ' + (json.error || resp.statusText) });
+              } else {
+                // 생성되었으니 로그인 재시도
+                const retry = await sb.auth.signInWithPassword({ email, password });
+                if (retry.error) {
+                  setResult({ type: 'fail', message: '테스트 계정 생성은 성공했지만 로그인에 실패했습니다: ' + retry.error.message });
+                } else {
+                  setResult({ type: 'success', message: '테스트 계정 생성 및 로그인에 성공했습니다.' });
+                }
+              }
+            } catch (e) {
+              setResult({ type: 'fail', message: '테스트 계정 생성 중 오류가 발생했습니다: ' + e.message });
+            }
+          } else {
+            setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
+          }
         } else {
           setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
         }
