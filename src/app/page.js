@@ -65,84 +65,15 @@ export default function Home() {
           setResult({ type: 'success', message });
         }
       } else {
-<<<<<<< HEAD
-        console.log('[LOGIN] 로그인 시도:', email);
         const { data, error } = await sb.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) {
-<<<<<<< HEAD
-          // 자동 테스트 계정 생성/로그인 흐름: 개발용으로만 사용
-          if (email === 'test123@test.com' && password === 'test123') {
-            // 개발용: 서버에서 서비스 키로 사용자 생성(확인 완료) 후 재로그인
-            try {
-              const resp = await fetch('/api/dev/create-test-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-              });
-              const json = await resp.json();
-              if (!resp.ok) {
-                setResult({ type: 'fail', message: '테스트 계정 생성 실패: ' + (json.error || resp.statusText) });
-              } else {
-                // 생성되었으니 로그인 재시도
-                const retry = await sb.auth.signInWithPassword({ email, password });
-                if (retry.error) {
-                  setResult({ type: 'fail', message: '테스트 계정 생성은 성공했지만 로그인에 실패했습니다: ' + retry.error.message });
-                } else {
-                  setResult({ type: 'success', message: '테스트 계정 생성 및 로그인에 성공했습니다.' });
-                }
-              }
-            } catch (e) {
-              setResult({ type: 'fail', message: '테스트 계정 생성 중 오류가 발생했습니다: ' + e.message });
-            }
-          } else {
-            setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
-          }
-=======
-          console.error('[LOGIN] 로그인 오류:', error);
           setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
->>>>>>> eefba6f (backup before mongodb debug)
         } else {
-          console.log('[LOGIN] 로그인 성공, MongoDB 저장 시작');
-=======
-        // MongoDB에 직접 저장 (Supabase 인증 스킵)
-        console.log('[LOGIN] MongoDB 저장 시작:', email);
-        
-        try {
-          const apiResponse = await fetch("/api", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              session_id: Date.now().toString(),
-              email,
-              events: [
-                {
-                  type: "test_click",
-                  x: 100,
-                  y: 200,
-                },
-              ],
-            }),
-          });
->>>>>>> 27a729e (feat: integrate MongoDB for captcha behavior data storage)
-          
-          const apiData = await apiResponse.json();
-          console.log('[API] 응답:', apiData);
-          
-          if (!apiResponse.ok) {
-            console.error('[API] 에러 상태:', apiResponse.status, apiData);
-            setResult({ type: 'fail', message: 'MongoDB 저장 실패: ' + apiData.error });
-          } else {
-            setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
-          }
-        } catch (fetchErr) {
-          console.error('[FETCH] 요청 실패:', fetchErr);
-          setResult({ type: 'fail', message: '요청 실패: ' + fetchErr.message });
+          setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
         }
       }
     } catch (err) {
