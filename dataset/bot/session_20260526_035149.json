@@ -1,0 +1,120 @@
+{
+  "session_id": "20260526_035149",
+  "start_time": 1779767509.671,
+  "total": 12,
+  "events": [
+    {
+      "seq": 0,
+      "type": "page_load",
+      "timestamp": 1779767511.845,
+      "elapsed_ms": 2174,
+      "extra": {
+        "url": "http://localhost:3000"
+      }
+    },
+    {
+      "seq": 1,
+      "type": "move",
+      "timestamp": 1779767513.403,
+      "elapsed_ms": 3732,
+      "x": 629,
+      "y": 321
+    },
+    {
+      "seq": 2,
+      "type": "click",
+      "timestamp": 1779767513.457,
+      "elapsed_ms": 3786,
+      "x": 629,
+      "y": 321,
+      "extra": {
+        "selector": "login-email"
+      }
+    },
+    {
+      "seq": 3,
+      "type": "input_text",
+      "timestamp": 1779767513.57,
+      "elapsed_ms": 3898,
+      "extra": {
+        "field": "email"
+      }
+    },
+    {
+      "seq": 4,
+      "type": "move",
+      "timestamp": 1779767514.373,
+      "elapsed_ms": 4702,
+      "x": 629,
+      "y": 415
+    },
+    {
+      "seq": 5,
+      "type": "click",
+      "timestamp": 1779767514.421,
+      "elapsed_ms": 4749,
+      "x": 629,
+      "y": 415,
+      "extra": {
+        "selector": "login-password"
+      }
+    },
+    {
+      "seq": 6,
+      "type": "input_text",
+      "timestamp": 1779767514.488,
+      "elapsed_ms": 4816,
+      "extra": {
+        "field": "password"
+      }
+    },
+    {
+      "seq": 7,
+      "type": "move",
+      "timestamp": 1779767515.292,
+      "elapsed_ms": 5621,
+      "x": 629,
+      "y": 495
+    },
+    {
+      "seq": 8,
+      "type": "click",
+      "timestamp": 1779767515.364,
+      "elapsed_ms": 5693,
+      "x": 629,
+      "y": 495,
+      "extra": {
+        "selector": "login-submit"
+      }
+    },
+    {
+      "seq": 9,
+      "type": "move",
+      "timestamp": 1779767515.92,
+      "elapsed_ms": 6249,
+      "x": 306,
+      "y": 257
+    },
+    {
+      "seq": 10,
+      "type": "click",
+      "timestamp": 1779767516.008,
+      "elapsed_ms": 6336,
+      "x": 306,
+      "y": 257,
+      "extra": {
+        "selector": "hotspot-bookshelf"
+      }
+    },
+    {
+      "seq": 11,
+      "type": "error",
+      "timestamp": 1779767526.929,
+      "elapsed_ms": 17258,
+      "extra": {
+        "type": "TimeoutException",
+        "reason": "Message: \nStacktrace:\n\tchromedriver!GetHandleVerifier [0x7ff6defe7de5+14895]\n\tchromedriver!GetHandleVerifier [0x7ff6defe7e50+14900]\n\tchromedriver!(No symbol) [0x7ff6ded4d5ad]\n\tchromedriver!(No symbol) [0x7ff6deda7822]\n\tchromedriver!(No symbol) [0x7ff6deda7b2c]\n\tchromedriver!(No symbol) [0x7ff6dedf7d17]\n\tchromedriver!(No symbol) [0x7ff6dedf486f]\n\tchromedriver!(No symbol) [0x7ff6ded99df8]\n\tchromedriver!(No symbol) [0x7ff6ded9ace3]\n\tchromedriver!GetHandleVerifier [0x7ff6df2fcc49+3296f9]\n\tchromedriver!GetHandleVerifier [0x7ff6df2f7375+323e25]\n\tchromedriver!GetHandleVerifier [0x7ff6df31bc82+348732]\n\tchromedriver!GetHandleVerifier [0x7ff6df006045+32af5]\n\tchromedriver!GetHandleVerifier [0x7ff6df00ecec+3b79c]\n\tchromedriver!GetHandleVerifier [0x7ff6deff1bc4+1e674]\n\tchromedriver!GetHandleVerifier [0x7ff6deff1d54+1e804]\n\tchromedriver!GetHandleVerifier [0x7ff6defd60e7+2b97]\n\tKERNEL32!BaseThreadInitThunk [0x7ffda224e957+17]\n\tntdll!RtlUserThreadStart [0x7ffda2a4427c+2c]\n"
+      }
+    }
+  ]
+}
