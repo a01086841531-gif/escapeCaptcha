@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Escape Room Captcha Login System
 
-## Getting Started
+A secure and gamified login interface that replaces traditional text/image captchas with an interactive escape-room-themed puzzle experience. This project not only provides a unique user experience but also employs advanced machine learning to detect and block automated bot interactions.
 
-First, run the development server:
+## 🌟 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Gamified Captcha Experience**: Users must solve interactive puzzles hidden within a dark-themed escape room environment to authenticate:
+  - Bookshelf height sorting
+  - Korean keyboard layout decryption
+  - Symbol counting challenge
+- **Advanced Bot Detection**: Collects detailed user interaction data (mouse movements, click events, timing) and scores it using an Isolation Forest machine learning model to accurately distinguish humans from bots.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Data Collection & Training**: Includes Python scripts and Selenium bots to generate synthetic bot data and train the AI classification model.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🛠️ Technology Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend**: Next.js (App Router), React, CSS Modules, Lucide React
 
-## Learn More
+- **AI / Machine Learning**: Python, scikit-learn (Isolation Forest), Pandas
+- **Data Automation**: Selenium (for bot data generation)
 
-To learn more about Next.js, take a look at the following resources:
+## 📂 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/src`: Next.js frontend code (Pages, API routes, Components, Utilities).
+- `/ai`: Python scripts for training the bot detection model (`training.py`, `score_model.py`).
+- `/bot`: Selenium scripts for generating automated bot interaction datasets (`collect_bot_data.py`, `collect_human_data.py`).
+- `/model`: Contains the trained machine learning models (e.g., `classifier.pkl`).
+- `/dataset`: Stored interaction JSON logs for both bots and humans used for model training.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Getting Started
 
-## Deploy on Vercel
+### Prerequisites
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Node.js 18.x or later
+- Python 3.10+ (for AI model training and evaluation)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/a01086841531-gif/escapeCaptcha.git
+   cd escapeCaptcha
+   ```
+
+2. **Install Node dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Run the Next.js Development Server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### AI Model Setup (Optional)
+
+If you want to retrain the bot detection model or run data collection scripts:
+
+1. **Install Python dependencies**
+   ```bash
+   pip install pandas scikit-learn selenium
+   ```
+
+2. **Train the Model**
+   Navigate to the project root and run the training script:
+   ```bash
+   python ai/training.py
+   ```
+   This will generate a new `classifier.pkl` model based on the datasets.
+
+## 📝 License
+This project is [MIT](https://choosealicense.com/licenses/mit/) licensed.

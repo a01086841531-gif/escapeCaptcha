@@ -5,7 +5,7 @@ import { KeyRound, Mail, Lock, Shield } from 'lucide-react';
 import styles from './page.module.css';
 import EscapeRoom from '@/components/EscapeRoom';
 import ResultModal from '@/components/ResultModal';
-import { getSupabase } from '@/utils/supabase/client';
+
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -45,12 +45,12 @@ export default function Home() {
     [email, password, isSignUp, passwordConfirm]
   );
 
-  /* ─── 캡챠 성공 → Supabase 로그인/회원가입 시도 ─── */
-  const handleCaptchaSuccess = useCallback(async () => {
+  /* ─── 캡챠 성공 → 로그인/회원가입 처리 ─── */
+  const handleCaptchaSuccess = useCallback(() => {
     const trimmedEmail = email.trim();
     const trimmedPw = password.trim();
 
-    // ── 데모용 테스트 계정 강제 분기 ──
+    // ── 데모용 테스트 계정 ──
     if (trimmedEmail === 'person123@person.com' || trimmedEmail === 'test123@test.com') {
       if (trimmedPw === 'person123' || trimmedPw === 'test123') {
         setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
@@ -64,37 +64,11 @@ export default function Home() {
       }
     }
 
-    try {
-      const sb = getSupabase();
-      if (isSignUp) {
-        const { data, error } = await sb.auth.signUp({
-          email,
-          password,
-        });
-
-        if (error) {
-          setResult({ type: 'fail', message: '회원가입 실패: ' + error.message });
-        } else {
-          const autoConfirmed = data?.user && data?.session;
-          const message = autoConfirmed
-            ? '회원가입 및 로그인이 완료되었습니다!'
-            : '회원가입 성공! 이메일 인증 메일이 발송되었을 수 있으니 메일함을 확인해주세요.';
-          setResult({ type: 'success', message });
-        }
-      } else {
-        const { data, error } = await sb.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
-        } else {
-          setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
-        }
-      }
-    } catch (err) {
-      setResult({ type: 'fail', message: '서버 연결에 실패했습니다. 다시 시도해주세요.' });
+    // ── 캡챠 통과 시 성공 처리 ──
+    if (isSignUp) {
+      setResult({ type: 'success', message: '회원가입이 완료되었습니다!' });
+    } else {
+      setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
     }
   }, [email, password, isSignUp]);
 
