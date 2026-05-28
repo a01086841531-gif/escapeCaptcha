@@ -7,6 +7,7 @@ import joblib
 from sklearn.ensemble import IsolationForest
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.preprocessing import StandardScaler
 
 # ==========================================
 # FEATURE EXTRACTION
@@ -22,7 +23,9 @@ def extract_features(filepath):
     moves=[e for e in events if e["type"]=="move"]
     clicks=[e for e in events if e["type"]=="click"]
 
-    # avg_speed
+    # --------------------
+    # distance features
+    # --------------------
 
     distances=[]
 
@@ -36,10 +39,15 @@ def extract_features(filepath):
         distances.append(dist)
 
     avg_speed=np.mean(distances) if distances else 0
+    max_speed=np.max(distances) if distances else 0
+    speed_std=np.std(distances) if distances else 0
 
-    # direction_changes
+    # --------------------
+    # direction features
+    # --------------------
 
     direction_changes=0
+    angles=[]
 
     for i in range(2,len(moves)):
 
@@ -52,35 +60,67 @@ def extract_features(filepath):
         angle1=np.arctan2(dy1,dx1)
         angle2=np.arctan2(dy2,dx2)
 
-        if abs(angle2-angle1)>0.5:
+        diff=abs(angle2-angle1)
+
+        angles.append(diff)
+
+        if diff>0.5:
             direction_changes += 1
 
-    # click variance
+    curvature=np.mean(angles) if angles else 0
+
+    # --------------------
+    # click timing
+    # --------------------
 
     click_times=[e["elapsed_ms"] for e in clicks]
 
     click_variance=np.var(click_times) if len(click_times)>1 else 0
 
-    # curvature
+    # --------------------
+    # pause timing
+    # --------------------
 
-    curvature=direction_changes/max(len(moves),1)
+    elapsed=[e["elapsed_ms"] for e in events]
+
+    gaps=[]
+
+    for i in range(1,len(elapsed)):
+
+        gaps.append(
+            elapsed[i]-elapsed[i-1]
+        )
+
+    avg_pause=np.mean(gaps) if gaps else 0
+    pause_std=np.std(gaps) if gaps else 0
 
     return {
+
         "avg_speed":avg_speed,
+        "max_speed":max_speed,
+        "speed_std":speed_std,
+
         "direction_changes":direction_changes,
+        "curvature":curvature,
+
         "click_variance":click_variance,
-        "curvature":curvature
+
+        "avg_pause":avg_pause,
+        "pause_std":pause_std,
+
+        "move_count":len(moves),
+        "click_count":len(clicks)
     }
 
 # ==========================================
-# LOAD HUMAN JSON
+# LOAD HUMAN DATA
 # ==========================================
 
-root_folder="human/human"
+human_folder=r"C:\Users\kimda\Desktop\dasol\cc\captcha\ai\human\human"
 
 human_features=[]
 
-for root,dirs,files in os.walk(root_folder):
+for root,dirs,files in os.walk(human_folder):
 
     for file in files:
 
@@ -92,150 +132,279 @@ for root,dirs,files in os.walk(root_folder):
 
             human_features.append(feature)
 
-            print(f"로드 완료 → {filepath}")
+            print("HUMAN LOAD →",filepath)
 
-df=pd.DataFrame(human_features)
+human_df=pd.DataFrame(human_features)
 
-print("\n전체 데이터 개수 :",len(df))
+print("\nHuman samples :",len(human_df))
 
 # ==========================================
 # TRAIN / TEST SPLIT
 # ==========================================
 
 train_df,test_human=train_test_split(
-    df,
+
+    human_df,
+
     test_size=0.1,
+
     random_state=42
 )
 
 print("Train :",len(train_df))
-print("Test :",len(test_human))
+print("Human Test :",len(test_human))
 
 # ==========================================
-# MODEL 생성
+# LOAD BOT DATA
+# ==========================================
+
+bot_folder=r"C:\Users\kimda\Desktop\dasol\cc\captcha\dataset\bot"
+
+bot_features=[]
+
+for root,dirs,files in os.walk(bot_folder):
+
+    for file in files:
+
+        if file.endswith(".json"):
+
+            filepath=os.path.join(root,file)
+
+            feature=extract_features(filepath)
+
+            bot_features.append(feature)
+
+            print("BOT LOAD →",filepath)
+
+bot_df=pd.DataFrame(bot_features)
+
+print("Bot samples :",len(bot_df))
+
+# ==========================================
+# STANDARD SCALER
+# ==========================================
+
+scaler=StandardScaler()
+
+train_scaled=pd.DataFrame(
+
+    scaler.fit_transform(train_df),
+
+    columns=train_df.columns
+)
+
+test_scaled=pd.DataFrame(
+
+    scaler.transform(test_human),
+
+    columns=test_human.columns
+)
+
+bot_scaled=pd.DataFrame(
+
+    scaler.transform(bot_df),
+
+    columns=bot_df.columns
+)
+
+# ==========================================
+# MODEL CREATE
 # ==========================================
 
 model=IsolationForest(
 
-    n_estimators=100,
-    contamination=0.05,
-    random_state=42
+    n_estimators=200,
 
+    contamination=0.10,
+
+    random_state=42
 )
 
 # ==========================================
-# MODEL TRAIN
+# TRAIN
 # ==========================================
 
-model.fit(train_df)
+model.fit(train_scaled)
 
-print("\n모델 학습 완료")
+print("\nMODEL TRAIN COMPLETE")
 
 # ==========================================
-# MODEL SAVE
+# SAVE
 # ==========================================
 
 joblib.dump(
+
     model,
+
     "captcha_bot_detector.pkl"
 )
 
-print("모델 저장 완료")
+print("MODEL SAVE COMPLETE")
 
 # ==========================================
-# MODEL LOAD
+# LOAD MODEL
 # ==========================================
 
 loaded_model=joblib.load(
+
     "captcha_bot_detector.pkl"
 )
 
-print("모델 로드 완료")
+print("MODEL LOAD COMPLETE")
+
+# ==========================================
+# SCORE CALCULATION
+# ==========================================
+
+human_scores=loaded_model.decision_function(
+
+    test_scaled
+)
+
+bot_scores=loaded_model.decision_function(
+
+    bot_scaled
+)
+
+# ==========================================
+# CUSTOM THRESHOLD
+# ==========================================
+
+THRESHOLD=0
+
+def custom_predict(scores):
+
+    return np.array([
+
+        -1 if s < THRESHOLD else 1
+
+        for s in scores
+    ])
+
+human_pred=custom_predict(
+
+    human_scores
+)
+
+bot_pred=custom_predict(
+
+    bot_scores
+)
 
 # ==========================================
 # HUMAN TEST
 # ==========================================
 
-human_pred=loaded_model.predict(test_human)
-
 print("\n===== HUMAN TEST =====")
 
 human_correct=0
 
-for i,pred in enumerate(human_pred):
+for i,(pred,score) in enumerate(
+
+    zip(human_pred,human_scores)
+
+):
 
     if pred==1:
 
-        print(f"{i+1} → 정상")
+        print(
+
+            f"{i+1} → 정상 "
+
+            f"(score={score:.4f})"
+        )
 
         human_correct+=1
 
     else:
 
-        print(f"{i+1} → 이상탐지")
+        print(
+
+            f"{i+1} → 이상탐지 "
+
+            f"(score={score:.4f})"
+        )
 
 human_acc=human_correct/len(test_human)
 
-print(f"\nHuman Accuracy : {human_acc:.2%}")
+print(
 
-# ==========================================
-# BOT TEST DATA
-# ==========================================
+    f"\nHuman Accuracy : "
 
-bot_data=pd.DataFrame([
-
-    {"avg_speed":520,"direction_changes":1,"click_variance":0.001,"curvature":0.01},
-    {"avg_speed":650,"direction_changes":0,"click_variance":0.0001,"curvature":0.005},
-    {"avg_speed":700,"direction_changes":2,"click_variance":0.001,"curvature":0.01},
-    {"avg_speed":580,"direction_changes":1,"click_variance":0.002,"curvature":0.02},
-    {"avg_speed":490,"direction_changes":0,"click_variance":0.0005,"curvature":0.01},
-
-    {"avg_speed":620,"direction_changes":1,"click_variance":0.001,"curvature":0.02},
-    {"avg_speed":540,"direction_changes":0,"click_variance":0.0003,"curvature":0.01},
-    {"avg_speed":600,"direction_changes":2,"click_variance":0.001,"curvature":0.02},
-    {"avg_speed":720,"direction_changes":1,"click_variance":0.0001,"curvature":0.005},
-    {"avg_speed":560,"direction_changes":0,"click_variance":0.001,"curvature":0.01}
-
-])
+    f"{human_acc:.2%}"
+)
 
 # ==========================================
 # BOT TEST
 # ==========================================
 
-bot_pred=loaded_model.predict(bot_data)
-
 print("\n===== BOT TEST =====")
 
 bot_correct=0
 
-for i,pred in enumerate(bot_pred):
+for i,(pred,score) in enumerate(
+
+    zip(bot_pred,bot_scores)
+
+):
 
     if pred==-1:
 
-        print(f"BOT {i+1} → 탐지 성공")
+        print(
+
+            f"BOT {i+1} → 탐지 성공 "
+
+            f"(score={score:.4f})"
+        )
 
         bot_correct+=1
 
     else:
 
-        print(f"BOT {i+1} → 정상으로 오인")
+        print(
 
-bot_acc=bot_correct/len(bot_data)
+            f"BOT {i+1} → 정상으로 오인 "
 
-print(f"\nBot Detection Rate : {bot_acc:.2%}")
+            f"(score={score:.4f})"
+        )
+
+bot_acc=bot_correct/len(bot_df)
+
+print(
+
+    f"\nBot Detection Rate : "
+
+    f"{bot_acc:.2%}"
+)
 
 # ==========================================
 # FINAL EVALUATION
 # ==========================================
 
-y_true=[1]*len(test_human)+[-1]*len(bot_data)
+y_true=[1]*len(test_human)+[-1]*len(bot_df)
 
 y_pred=list(human_pred)+list(bot_pred)
 
 print("\n===== CONFUSION MATRIX =====")
 
-print(confusion_matrix(y_true,y_pred))
+print(
+
+    confusion_matrix(
+
+        y_true,
+
+        y_pred
+    )
+)
 
 print("\n===== REPORT =====")
 
-print(classification_report(y_true,y_pred))
+print(
+
+    classification_report(
+
+        y_true,
+
+        y_pred
+    )
+)
