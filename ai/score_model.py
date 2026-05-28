@@ -18,7 +18,7 @@ MODEL_PATH = ROOT_MODEL_PATH if os.path.exists(ROOT_MODEL_PATH) else AI_MODEL_PA
 # ── Threshold 완화: -0.05는 너무 엄격 → -0.30으로 완화
 #    Isolation Forest decision_function은 양수=정상, 음수=이상치
 #    학습 데이터가 친구 1명뿐이라 분포가 좁아서 본인이 봇으로 판별됨
-THRESHOLD = 0
+THRESHOLD = 1
 
 FEATURE_NAMES = [
     'avg_speed',
