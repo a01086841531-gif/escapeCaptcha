@@ -113,15 +113,10 @@ const BOOK_COLORS = [
    CaptchaModal Component
 ──────────────────────────────────────────── */
 export default function CaptchaModal({ onSuccess, onFail, onClose }) {
-  // Pick random captcha type
-  const [captchaType] = useState(() => Math.floor(Math.random() * 3));
-  const [userInput, setUserInput] = useState('');
-  const [shaking, setShaking] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-
-  // Generate problem data once
-  const problem = useMemo(() => {
-    switch (captchaType) {
+  // Generate problem data once on mount
+  const [problem] = useState(() => {
+    const typeNum = Math.floor(Math.random() * 3);
+    switch (typeNum) {
       case 0:
         return { type: 'bookshelf', ...generateBookshelfProblem() };
       case 1: {
@@ -133,7 +128,11 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
       default:
         return { type: 'bookshelf', ...generateBookshelfProblem() };
     }
-  }, [captchaType]);
+  });
+
+  const [userInput, setUserInput] = useState('');
+  const [shaking, setShaking] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
   const handleSubmit = useCallback(() => {
     const trimmed = userInput.trim().toLowerCase();

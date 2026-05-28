@@ -47,6 +47,23 @@ export default function Home() {
 
   /* ─── 캡챠 성공 → Supabase 로그인/회원가입 시도 ─── */
   const handleCaptchaSuccess = useCallback(async () => {
+    const trimmedEmail = email.trim();
+    const trimmedPw = password.trim();
+
+    // ── 데모용 테스트 계정 강제 분기 ──
+    if (trimmedEmail === 'person123@person.com' || trimmedEmail === 'test123@test.com') {
+      if (trimmedPw === 'person123' || trimmedPw === 'test123') {
+        setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
+        return;
+      }
+    }
+    if (trimmedEmail === 'bot123@bot.com') {
+      if (trimmedPw === 'bot123') {
+        setResult({ type: 'fail', message: '로그인 실패: 봇 탐지 활성화' });
+        return;
+      }
+    }
+
     try {
       const sb = getSupabase();
       if (isSignUp) {

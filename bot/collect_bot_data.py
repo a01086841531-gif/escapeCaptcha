@@ -2,19 +2,6 @@
 collect_bot_data.py  — 봇 데이터 수집기 (CAPTCHA 자동 풀이 포함)
 사용법: python collect_bot_data.py
 저장:   dataset/bot/session_YYYYMMDD_HHMMSS.json
-
-데모 시나리오:
-  1) Selenium 봇이 로그인 → 방탈출 → CAPTCHA 정답까지 자동 풀이
-  2) 하지만 행동 패턴 분석 모델이 봇으로 탐지 → 인증 실패
-  → "문제풀이 CAPTCHA는 우회 가능하지만, 행동 기반 탐지는 유효하다"를 시연
-
-플로우:
-  1) localhost:3000 접속 → 로그인 화면
-  2) #login-email / #login-password 입력 → #login-submit 클릭
-  3) EscapeRoom → 핫스팟 클릭
-  4) CaptchaModal → DOM에서 문제 유형 판별 → 정답 자동 계산
-  5) 정답 입력 → #captcha-submit 클릭
-  6) 행동 점수 기반 봇 판정 대기 → 세션 JSON 저장
 """
 
 import json
@@ -23,6 +10,7 @@ import random
 import re
 import string
 import logging
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -40,9 +28,9 @@ from selenium.common.exceptions import (
 
 from mouse_tracker import MouseTracker
 from selenium_actions import random_delay, click_element, drag_element
+from pymongo import MongoClient
 
 # ── 로깅 설정 ─────────────────────────────────────────────
-# 핵심 로그만 INFO, 외부 라이브러리는 WARNING으로 억제
 logging.basicConfig(
     level=logging.INFO,
     format='[%(levelname)s] %(asctime)s %(name)s: %(message)s',
@@ -50,7 +38,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# urllib3 / selenium 내부 DEBUG 로그 억제
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("selenium").setLevel(logging.WARNING)
 logging.getLogger("selenium.webdriver").setLevel(logging.WARNING)
@@ -60,6 +47,11 @@ logging.getLogger("selenium.webdriver.remote").setLevel(logging.WARNING)
 URL         = "http://localhost:3000"
 OUTPUT_DIR  = Path("dataset/bot")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# ── MongoDB 설정 ──────────────────────────────────────────
+MONGO_URI  = "mongodb://localhost:27017"
+MONGO_DB   = "captcha_data"
+MONGO_COL  = "bot_events"
 
 # 테스트 계정
 BOT_EMAIL    = "bot123@bot.com"
@@ -105,13 +97,48 @@ def record(event_type: str, x: Optional[int] = None, y: Optional[int] = None,
 
     events.append(entry)
     coord_str = f" ({x},{y})" if x is not None and y is not None else ""
-    logger.info(f"  [EVENT {entry['seq']:03d}] {event_type}{coord_str}")
+    logger.debug(f"  [EVENT {entry['seq']:03d}] {event_type}{coord_str}")
+
+
+def enrich_events(events):
+    """기존 이벤트에 행동 분석 feature를 추가한 사본을 반환한다."""
+    enriched = []
+    prev = None
+    prev_vel = 0.0
+    for e in events:
+        r = dict(e)
+        if prev is not None and "x" in e and "y" in e and "x" in prev and "y" in prev:
+            dt = e["timestamp"] - prev["timestamp"]
+            dx = e["x"] - prev["x"]
+            dy = e["y"] - prev["y"]
+            dist = math.hypot(dx, dy)
+            vel  = dist / dt if dt > 0 else 0.0
+            acc  = (vel - prev_vel) / dt if dt > 0 else 0.0
+
+            r["delta_x"]      = dx
+            r["delta_y"]      = dy
+            r["distance"]     = round(dist, 2)
+            r["idle_time"]    = round(dt * 1000)
+            r["velocity"]     = round(vel, 2)
+            r["acceleration"] = round(acc, 2)
+            prev_vel = vel
+            prev = e
+        else:
+            r["delta_x"] = r["delta_y"] = 0
+            r["distance"]     = 0.0
+            r["idle_time"]    = 0
+            r["velocity"]     = 0.0
+            r["acceleration"] = 0.0
+            if "x" in e and "y" in e:
+                prev = e
+        enriched.append(r)
+    return enriched
 
 
 def wait_and_find(driver, by, value, timeout=ELEMENT_WAIT_TIMEOUT,
                   condition="visible", step_name=""):
     """요소를 대기하며 찾는 헬퍼. Timeout 시 상세 진단 로그 출력."""
-    logger.info(f"    대기중: {step_name} (by={by}, value='{value}', {timeout}s)")
+    logger.debug(f"    대기중: {step_name} (by={by}, value='{value}', {timeout}s)")
 
     wait = WebDriverWait(driver, timeout)
 
@@ -123,12 +150,12 @@ def wait_and_find(driver, by, value, timeout=ELEMENT_WAIT_TIMEOUT,
         else:
             el = wait.until(EC.visibility_of_element_located((by, value)))
 
-        logger.info(f"    발견: {step_name} → <{el.tag_name}> {el.size}")
+        logger.debug(f"    발견: {step_name} -> <{el.tag_name}> {el.size}")
         return el
 
     except TimeoutException:
         logger.error(f"{'='*60}")
-        logger.error(f"  ❌ TIMEOUT: {step_name}")
+        logger.error(f"  TIMEOUT: {step_name}")
         logger.error(f"  Selector: by={by}, value='{value}'")
         logger.error(f"  현재 URL: {driver.current_url}")
         logger.error(f"  페이지 타이틀: {driver.title}")
@@ -149,23 +176,18 @@ def get_center(el):
     )
 
 
-# ═══════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────
 # CAPTCHA 자동 풀이 함수들
-# ═══════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────
 
 def solve_bookshelf(driver) -> Optional[str]:
     """
-    📚 책장 문제 풀이.
+    책장 문제 풀이.
     DOM에서 각 책의 inline height와 숫자를 읽어 높이 오름차순으로 정렬.
-
-    DOM 구조 (CSS Module 해시됨):
-      div[class*="bookshelf"] > div[class*="book"] style="height: Xpx"
-        > span[class*="bookNumber"] → 숫자
     """
     try:
         books = driver.find_elements(By.CSS_SELECTOR, '[class*="book_"], [class*="book "]')
         if not books:
-            # CSS Module 해시 패턴이 다를 수 있으므로 대체 방법
             bookshelf = driver.find_element(By.CSS_SELECTOR, '[class*="bookshelf"]')
             books = bookshelf.find_elements(By.XPATH, './/div[.//span]')
 
@@ -175,7 +197,6 @@ def solve_bookshelf(driver) -> Optional[str]:
 
         book_data = []
         for book_el in books:
-            # inline style에서 height 추출
             style = book_el.get_attribute("style") or ""
             height_match = re.search(r'height:\s*(\d+)px', style)
             if not height_match:
@@ -183,7 +204,6 @@ def solve_bookshelf(driver) -> Optional[str]:
 
             height = int(height_match.group(1))
 
-            # 숫자 추출 (span 내부 텍스트)
             try:
                 number_span = book_el.find_element(By.CSS_SELECTOR, 'span')
                 number = number_span.text.strip()
@@ -196,11 +216,10 @@ def solve_bookshelf(driver) -> Optional[str]:
             logger.warning("  책 데이터를 파싱하지 못했습니다.")
             return None
 
-        # 높이 오름차순 정렬 → 숫자 추출
         book_data.sort(key=lambda x: x[0])
         answer = ' '.join(str(num) for _, num in book_data)
 
-        logger.info(f"  📚 책장 풀이 완료: {book_data} → 정답: '{answer}'")
+        logger.info(f"  책장 풀이 완료: {book_data} -> 정답: '{answer}'")
         return answer
 
     except Exception as e:
@@ -210,10 +229,8 @@ def solve_bookshelf(driver) -> Optional[str]:
 
 def solve_keyboard(driver) -> Optional[str]:
     """
-    ⌨️ 한영 변환 문제 풀이.
+    한영 변환 문제 풀이.
     DOM에서 한글 자모 텍스트를 읽어 영어로 변환.
-
-    DOM 구조: div[class*="koreanText"] → 한글 자모 문자열
     """
     try:
         korean_el = driver.find_element(By.CSS_SELECTOR, '[class*="koreanText"]')
@@ -223,14 +240,12 @@ def solve_keyboard(driver) -> Optional[str]:
             logger.warning("  한글 텍스트가 비어있습니다.")
             return None
 
-        # 한글 자모 → 영어 변환
         answer = ''
         for ch in korean_text:
             if ch in KR_TO_EN:
                 answer += KR_TO_EN[ch]
-            # 매핑에 없는 문자는 무시 (공백 등)
 
-        logger.info(f"  ⌨️ 키보드 풀이 완료: '{korean_text}' → 정답: '{answer}'")
+        logger.info(f"  키보드 풀이 완료: '{korean_text}' -> 정답: '{answer}'")
         return answer if answer else None
 
     except NoSuchElementException:
@@ -243,12 +258,8 @@ def solve_keyboard(driver) -> Optional[str]:
 
 def solve_symbol(driver) -> Optional[str]:
     """
-    🔍 기호 세기 문제 풀이.
+    기호 세기 문제 풀이.
     DOM에서 타겟 기호와 전체 셀을 읽어 개수를 센다.
-
-    DOM 구조:
-      span[class*="targetSymbol"] → 타겟 기호
-      div[class*="symbolCell"] → 각 셀의 기호
     """
     try:
         target_el = driver.find_element(By.CSS_SELECTOR, '[class*="targetSymbol"]')
@@ -266,7 +277,7 @@ def solve_symbol(driver) -> Optional[str]:
                 count += 1
 
         answer = str(count)
-        logger.info(f"  🔍 기호 풀이 완료: '{target_symbol}' × {count}개 → 정답: '{answer}'")
+        logger.info(f"  기호 풀이 완료: '{target_symbol}' x {count}개 -> 정답: '{answer}'")
         return answer
 
     except NoSuchElementException:
@@ -280,21 +291,15 @@ def solve_symbol(driver) -> Optional[str]:
 def detect_and_solve_captcha(driver) -> Optional[str]:
     """
     모달 제목(h2)을 읽어 CAPTCHA 유형을 판별하고 자동 풀이.
-
-    제목 패턴:
-      '📚 책장의 비밀'   → bookshelf
-      '⌨️ 암호 해독'    → keyboard
-      '🔍 기호 탐색'    → symbol
     """
     try:
         title_el = driver.find_element(By.CSS_SELECTOR, '[class*="modalTitle"]')
         title_text = title_el.text.strip()
-        logger.info(f"  🎯 CAPTCHA 유형 감지: '{title_text}'")
+        logger.info(f"  CAPTCHA 유형 감지: '{title_text}'")
     except NoSuchElementException:
-        logger.warning("  모달 제목을 찾지 못함 — 기본으로 책장 시도")
+        logger.warning("  모달 제목을 찾지 못함 - 기본으로 책장 시도")
         title_text = ""
 
-    # 유형 판별 및 풀이
     if '책장' in title_text:
         return solve_bookshelf(driver)
     elif '암호' in title_text or '해독' in title_text:
@@ -302,7 +307,6 @@ def detect_and_solve_captcha(driver) -> Optional[str]:
     elif '기호' in title_text or '탐색' in title_text:
         return solve_symbol(driver)
     else:
-        # 제목을 못 읽었을 때 — DOM 요소 존재 여부로 판별
         logger.info("  제목으로 판별 실패, DOM 기반 판별 시도...")
         try:
             driver.find_element(By.CSS_SELECTOR, '[class*="bookshelf"]')
@@ -324,24 +328,22 @@ def detect_and_solve_captcha(driver) -> Optional[str]:
         return None
 
 
-# ═══════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────
 # 메인 실행
-# ═══════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────
 
 options = webdriver.ChromeOptions()
 options.add_argument("--window-size=1280,800")
 driver = webdriver.Chrome(options=options)
 driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
 
-logger.info(f"{'━'*55}")
-logger.info(f"  🤖 봇 세션 시작: {session_id}")
-logger.info(f"{'━'*55}")
+logger.info(f"--- 봇 세션 시작: {session_id} ---")
 
 try:
     # ─────────────────────────────────────────────────────
     # STEP 1: 페이지 접속
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 1: 페이지 접속")
+    logger.info("STEP 1: 페이지 접속")
     driver.get(URL)
     record("page_load", extra={"url": URL})
     time.sleep(2)
@@ -349,7 +351,7 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 2: 이메일 입력
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 2: 이메일 입력")
+    logger.info("STEP 2: 이메일 입력")
     email_input = wait_and_find(driver, By.ID, "login-email",
                                 step_name="#login-email")
     ex, ey = get_center(email_input)
@@ -371,7 +373,7 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 3: 비밀번호 입력
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 3: 비밀번호 입력")
+    logger.info("STEP 3: 비밀번호 입력")
     pw_input = wait_and_find(driver, By.ID, "login-password",
                              step_name="#login-password")
     px, py_ = get_center(pw_input)
@@ -393,10 +395,10 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 4: 로그인 버튼 클릭
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 4: 로그인 버튼 클릭 (방탈출 시작)")
+    logger.info("STEP 4: 로그인 버튼 클릭")
     login_btn = wait_and_find(driver, By.ID, "login-submit",
-                              condition="clickable",
-                              step_name="#login-submit")
+                               condition="clickable",
+                               step_name="#login-submit")
     lx, ly = get_center(login_btn)
 
     ActionChains(driver).move_to_element(login_btn).pause(0.3).perform()
@@ -405,17 +407,17 @@ try:
 
     login_btn.click()
     record("click", x=lx, y=ly, extra={"selector": "#login-submit", "action": "login"})
-    logger.info("  → 로그인 완료, EscapeRoom 전환 대기...")
+    logger.info("  로그인 완료, EscapeRoom 전환 대기...")
     time.sleep(3)
 
     # ─────────────────────────────────────────────────────
     # STEP 5: 핫스팟 클릭 → CaptchaModal 열기
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 5: EscapeRoom 핫스팟 클릭")
+    logger.info("STEP 5: EscapeRoom 핫스팟 클릭")
 
     hotspot_ids = ["hotspot-bookshelf", "hotspot-desk", "hotspot-safe"]
     chosen = random.choice(hotspot_ids)
-    logger.info(f"  → 선택: #{chosen}")
+    logger.info(f"  선택: #{chosen}")
 
     hotspot = wait_and_find(driver, By.ID, chosen,
                             condition="clickable",
@@ -428,13 +430,13 @@ try:
 
     hotspot.click()
     record("click", x=hx, y=hy, extra={"selector": f"#{chosen}", "action": "open_captcha"})
-    logger.info("  → 핫스팟 클릭 완료, CaptchaModal 대기...")
+    logger.info("  핫스팟 클릭 완료, CaptchaModal 대기...")
     time.sleep(2)
 
     # ─────────────────────────────────────────────────────
     # STEP 6: CaptchaModal 감지
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 6: CaptchaModal 모달 감지")
+    logger.info("STEP 6: CaptchaModal 모달 감지")
     captcha_input = wait_and_find(driver, By.ID, "captcha-answer",
                                   step_name="#captcha-answer (모달 감지)")
     record("modal_appeared", extra={"detected_by": "#captcha-answer"})
@@ -443,22 +445,21 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 7: CAPTCHA 자동 풀이 (DOM 기반)
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 7: CAPTCHA 자동 풀이")
+    logger.info("STEP 7: CAPTCHA 자동 풀이")
     answer = detect_and_solve_captcha(driver)
 
     if answer is None:
-        # 풀이 실패 시 랜덤 답 입력 (데이터 수집은 계속)
         answer = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-        logger.warning(f"  ⚠️ 자동 풀이 실패, 랜덤 답 사용: '{answer}'")
+        logger.warning(f"  자동 풀이 실패, 랜덤 답 사용: '{answer}'")
         record("captcha_solve_failed", extra={"fallback_answer": answer})
     else:
-        logger.info(f"  ✅ CAPTCHA 정답 계산 완료: '{answer}'")
+        logger.info(f"  CAPTCHA 정답 계산 완료: '{answer}'")
         record("captcha_solved", extra={"answer": answer, "method": "dom_parsing"})
 
     # ─────────────────────────────────────────────────────
     # STEP 8: 정답 입력
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 8: 캡챠 정답 입력")
+    logger.info("STEP 8: 캡챠 정답 입력")
     ix, iy = get_center(captcha_input)
 
     ActionChains(driver).move_to_element(captcha_input).pause(0.2).perform()
@@ -469,7 +470,6 @@ try:
     record("click", x=ix, y=iy, extra={"selector": "#captcha-answer"})
     random_delay(150, 300)
 
-    # 한 글자씩 입력 (봇 특유의 일정한 타이핑 패턴)
     for ch in answer:
         captcha_input.send_keys(ch)
         random_delay(20, 80)
@@ -479,7 +479,7 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 9: 마우스 랜덤 움직임 (봇 패턴 수집)
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 9: 랜덤 마우스 움직임 (봇 패턴)")
+    logger.info("STEP 9: 랜덤 마우스 움직임 (봇 패턴)")
     for i in range(5):
         ox = random.randint(-40, 40)
         oy = random.randint(-40, 40)
@@ -493,7 +493,7 @@ try:
     # ─────────────────────────────────────────────────────
     # STEP 10: 제출 버튼 클릭
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 10: 캡챠 제출 버튼 클릭")
+    logger.info("STEP 10: 캡챠 제출 버튼 클릭")
     submit_btn = wait_and_find(driver, By.ID, "captcha-submit",
                                condition="clickable",
                                step_name="#captcha-submit")
@@ -506,44 +506,43 @@ try:
     submit_btn.click()
     record("click", x=sx, y=sy,
            extra={"selector": "#captcha-submit", "action": "submit_captcha"})
-    logger.info("  → 캡챠 제출 완료!")
+    logger.info("  캡챠 제출 완료!")
 
     # ─────────────────────────────────────────────────────
     # STEP 11: 응답 대기 (행동 점수 판정 대기)
     # ─────────────────────────────────────────────────────
-    logger.info("▶ STEP 11: 행동 점수 판정 대기 (2초)")
+    logger.info("STEP 11: 행동 점수 판정 대기 (2초)")
     time.sleep(2)
     record("response_wait", extra={"wait_seconds": 2})
 
-    # 결과 확인 시도 (모달이나 메시지가 있는지)
     try:
         body_text = driver.find_element(By.TAG_NAME, "body").text
         if '봇' in body_text or '로봇' in body_text or '실패' in body_text or '자동화된' in body_text or '제한' in body_text:
-            logger.info("  🚫 결과: 봇으로 탐지됨 (행동 패턴 기반)")
+            logger.info("  결과: 봇으로 탐지됨 (행동 패턴 기반)")
             record("result", extra={"detected_as": "bot"})
         elif '인증 성공' in body_text or '완료되었습니다' in body_text:
-            logger.info("  ⚠️ 결과: 인증 통과됨 (예상과 다름)")
+            logger.info("  결과: 인증 통과됨 (예상과 다름)")
             record("result", extra={"detected_as": "human"})
         else:
-            logger.info("  ❓ 결과: 판정 불명")
+            logger.info("  결과: 판정 불명")
             record("result", extra={"detected_as": "unknown", "body_preview": body_text[:200]})
     except Exception:
         record("result", extra={"detected_as": "unknown"})
 
-    logger.info("━━━ 봇 시나리오 완료 ━━━")
+    logger.info("--- 봇 시나리오 완료 ---")
 
 except TimeoutException as e:
     record("error", extra={"type": "TimeoutException", "reason": str(e)})
-    logger.error(f"❌ TimeoutException: {e}")
+    logger.error(f"TimeoutException: {e}")
 except NoSuchElementException as e:
     record("error", extra={"type": "NoSuchElementException", "reason": str(e)})
-    logger.error(f"❌ NoSuchElementException: {e}")
+    logger.error(f"NoSuchElementException: {e}")
 except StaleElementReferenceException as e:
     record("error", extra={"type": "StaleElementReferenceException", "reason": str(e)})
-    logger.error(f"❌ StaleElementReferenceException: {e}")
+    logger.error(f"StaleElementReferenceException: {e}")
 except Exception as e:
     record("error", extra={"type": type(e).__name__, "reason": str(e)})
-    logger.exception(f"❌ Unexpected error: {e}")
+    logger.exception(f"Unexpected error: {e}")
 
 finally:
     # ─────────────────────────────────────────────────────
@@ -562,13 +561,30 @@ finally:
         }
         with open(out, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
-        logger.info(f"✅ 세션 저장 완료: {out} (이벤트 {len(events)}개)")
+        logger.info(f"세션 저장 완료: {out} (이벤트 {len(events)}개)")
     except PermissionError:
         logger.error(f"Permission denied: {out}")
     except IOError as e:
         logger.error(f"I/O error: {e}")
     except Exception as e:
         logger.error(f"저장 실패: {e}")
+
+    # ── MongoDB 저장 (enriched 데이터) ───────────────────────
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+        col    = client[MONGO_DB][MONGO_COL]
+        result = col.insert_one({
+            "session_id": session_id,
+            "label":      "bot",
+            "start_time": round(start_time, 3),
+            "total":      len(events),
+            "events":     enrich_events(events),
+        })
+        logger.info(f"MongoDB 저장 완료: {MONGO_DB}.{MONGO_COL} (_id={result.inserted_id})")
+        client.close()
+    except Exception as mongo_err:
+        logger.error(f"MongoDB 저장 실패: {mongo_err}")
+
     finally:
         driver.quit()
-        logger.info("🔒 WebDriver 종료")
+        logger.info("WebDriver 종료")
