@@ -300,6 +300,14 @@
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
 }
 
+.captchaErrorMessage {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 0.9rem;
+  color: #ff8a8a;
+  line-height: 1.5;
+}
+
 /* ─── Bookshelf Captcha ─────────────── */
 .bookshelf {
   display: flex;

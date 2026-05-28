@@ -233,9 +233,10 @@ print("\nMODEL TRAIN COMPLETE")
 # ==========================================
 
 joblib.dump(
-
-    model,
-
+    {
+        "model": model,
+        "scaler": scaler,
+    },
     "captcha_bot_detector.pkl"
 )
 
@@ -245,10 +246,16 @@ print("MODEL SAVE COMPLETE")
 # LOAD MODEL
 # ==========================================
 
-loaded_model=joblib.load(
-
+loaded = joblib.load(
     "captcha_bot_detector.pkl"
 )
+
+if isinstance(loaded, dict) and "model" in loaded and "scaler" in loaded:
+    loaded_model = loaded["model"]
+    loaded_scaler = loaded["scaler"]
+else:
+    loaded_model = loaded
+    loaded_scaler = None
 
 print("MODEL LOAD COMPLETE")
 
@@ -270,7 +277,7 @@ bot_scores=loaded_model.decision_function(
 # CUSTOM THRESHOLD
 # ==========================================
 
-THRESHOLD=0
+THRESHOLD = -0.05
 
 def custom_predict(scores):
 
