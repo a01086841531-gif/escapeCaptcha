@@ -235,7 +235,7 @@ try:
     print("\nFeature 중요도:")
     print("-" * 50)
     for name, score in feature_importance:
-        bar = "█" * int(score * 40)
+        bar = "#" * int(score * 40)
         print(f"  {name:<22} {score:.4f}  {bar}")
     print("-" * 50)
     

@@ -1,0 +1,26 @@
+{
+  "session_id": "20260528_124528",
+  "start_time": 1779972328.916,
+  "total": 2,
+  "events": [
+    {
+      "seq": 0,
+      "type": "page_load",
+      "timestamp": 1779972331.693,
+      "elapsed_ms": 2777,
+      "extra": {
+        "url": "http://localhost:3000"
+      }
+    },
+    {
+      "seq": 1,
+      "type": "error",
+      "timestamp": 1779972342.845,
+      "elapsed_ms": 13929,
+      "extra": {
+        "type": "TimeoutException",
+        "reason": "Message: \nStacktrace:\n\tchromedriver!GetHandleVerifier [0x7ff6734d7de5+14895]\n\tchromedriver!GetHandleVerifier [0x7ff6734d7e50+14900]\n\tchromedriver!(No symbol) [0x7ff67323d5ad]\n\tchromedriver!(No symbol) [0x7ff673297822]\n\tchromedriver!(No symbol) [0x7ff673297b2c]\n\tchromedriver!(No symbol) [0x7ff6732e7d17]\n\tchromedriver!(No symbol) [0x7ff6732e486f]\n\tchromedriver!(No symbol) [0x7ff673289df8]\n\tchromedriver!(No symbol) [0x7ff67328ace3]\n\tchromedriver!GetHandleVerifier [0x7ff6737ecc49+3296f9]\n\tchromedriver!GetHandleVerifier [0x7ff6737e7375+323e25]\n\tchromedriver!GetHandleVerifier [0x7ff67380bc82+348732]\n\tchromedriver!GetHandleVerifier [0x7ff6734f6045+32af5]\n\tchromedriver!GetHandleVerifier [0x7ff6734fecec+3b79c]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1bc4+1e674]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1d54+1e804]\n\tchromedriver!GetHandleVerifier [0x7ff6734c60e7+2b97]\n\tKERNEL32!BaseThreadInitThunk [0x7ffda224e957+17]\n\tntdll!RtlUserThreadStart [0x7ffda2a4427c+2c]\n"
+      }
+    }
+  ]
+}

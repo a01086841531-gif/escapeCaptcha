@@ -127,7 +127,8 @@ def click_element(driver: WebDriver, selector: str) -> Optional[CoordinateTuple]
         return None
     
     try:
-        el = WebDriverWait(driver, 10).until(
+        logger.debug(f"click_element: waiting for '{selector}' (timeout=15s)")
+        el = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
         )
         
@@ -155,7 +156,13 @@ def click_element(driver: WebDriver, selector: str) -> Optional[CoordinateTuple]
         return cx, cy
         
     except TimeoutException:
-        logger.error(f"Timeout: Element with selector '{selector}' not found within 10 seconds")
+        logger.error(f"Timeout: Element with selector '{selector}' not found within 15 seconds")
+        try:
+            logger.error(f"  Current URL: {driver.current_url}")
+            logger.error(f"  Page title: {driver.title}")
+            logger.error(f"  Page source (500자): {driver.page_source[:500]}")
+        except Exception:
+            pass
         return None
     except NoSuchElementException:
         logger.error(f"NoSuchElementException: Element with selector '{selector}' not found")
@@ -197,10 +204,12 @@ def drag_element(driver: WebDriver, handle_sel: str, target_sel: str) -> Optiona
         return None
     
     try:
-        handle = WebDriverWait(driver, 10).until(
+        logger.debug(f"drag_element: waiting for handle '{handle_sel}' (timeout=15s)")
+        handle = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, handle_sel))
         )
-        target = WebDriverWait(driver, 10).until(
+        logger.debug(f"drag_element: waiting for target '{target_sel}' (timeout=15s)")
+        target = WebDriverWait(driver, 15).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, target_sel))
         )
         
@@ -245,7 +254,13 @@ def drag_element(driver: WebDriver, handle_sel: str, target_sel: str) -> Optiona
         return sx, sy, ex, ey, duration_ms
         
     except TimeoutException:
-        logger.error(f"Timeout: Handle '{handle_sel}' or target '{target_sel}' not found within 10 seconds")
+        logger.error(f"Timeout: Handle '{handle_sel}' or target '{target_sel}' not found within 15 seconds")
+        try:
+            logger.error(f"  Current URL: {driver.current_url}")
+            logger.error(f"  Page title: {driver.title}")
+            logger.error(f"  Page source (500자): {driver.page_source[:500]}")
+        except Exception:
+            pass
         return None
     except NoSuchElementException:
         logger.error(f"NoSuchElementException: Handle '{handle_sel}' or target '{target_sel}' not found")

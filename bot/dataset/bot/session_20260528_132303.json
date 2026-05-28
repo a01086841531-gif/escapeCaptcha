@@ -1,0 +1,296 @@
+{
+  "session_id": "20260528_132303",
+  "label": "bot",
+  "start_time": 1779974583.166,
+  "end_time": 1779974611.169,
+  "duration_ms": 28003,
+  "total": 25,
+  "events": [
+    {
+      "seq": 0,
+      "type": "page_load",
+      "timestamp": 1779974585.483,
+      "elapsed_ms": 2317,
+      "extra": {
+        "url": "http://localhost:3000"
+      }
+    },
+    {
+      "seq": 1,
+      "type": "mouse_move",
+      "timestamp": 1779974588.165,
+      "elapsed_ms": 4999,
+      "x": 629,
+      "y": 321,
+      "extra": {
+        "target": "login-email"
+      }
+    },
+    {
+      "seq": 2,
+      "type": "click",
+      "timestamp": 1779974588.623,
+      "elapsed_ms": 5457,
+      "x": 629,
+      "y": 321,
+      "extra": {
+        "selector": "#login-email"
+      }
+    },
+    {
+      "seq": 3,
+      "type": "input_text",
+      "timestamp": 1779974590.305,
+      "elapsed_ms": 7139,
+      "extra": {
+        "field": "email",
+        "text": "bot123@bot.com"
+      }
+    },
+    {
+      "seq": 4,
+      "type": "mouse_move",
+      "timestamp": 1779974591.187,
+      "elapsed_ms": 8021,
+      "x": 629,
+      "y": 415,
+      "extra": {
+        "target": "login-password"
+      }
+    },
+    {
+      "seq": 5,
+      "type": "click",
+      "timestamp": 1779974591.554,
+      "elapsed_ms": 8388,
+      "x": 629,
+      "y": 415,
+      "extra": {
+        "selector": "#login-password"
+      }
+    },
+    {
+      "seq": 6,
+      "type": "input_text",
+      "timestamp": 1779974592.283,
+      "elapsed_ms": 9117,
+      "extra": {
+        "field": "password",
+        "text": "***"
+      }
+    },
+    {
+      "seq": 7,
+      "type": "mouse_move",
+      "timestamp": 1779974593.331,
+      "elapsed_ms": 10165,
+      "x": 629,
+      "y": 495,
+      "extra": {
+        "target": "login-submit"
+      }
+    },
+    {
+      "seq": 8,
+      "type": "click",
+      "timestamp": 1779974593.791,
+      "elapsed_ms": 10626,
+      "x": 629,
+      "y": 495,
+      "extra": {
+        "selector": "#login-submit",
+        "action": "login"
+      }
+    },
+    {
+      "seq": 9,
+      "type": "mouse_move",
+      "timestamp": 1779974597.548,
+      "elapsed_ms": 14382,
+      "x": 306,
+      "y": 257,
+      "extra": {
+        "target": "hotspot-bookshelf"
+      }
+    },
+    {
+      "seq": 10,
+      "type": "click",
+      "timestamp": 1779974598.158,
+      "elapsed_ms": 14992,
+      "x": 306,
+      "y": 257,
+      "extra": {
+        "selector": "#hotspot-bookshelf",
+        "action": "open_captcha"
+      }
+    },
+    {
+      "seq": 11,
+      "type": "modal_appeared",
+      "timestamp": 1779974600.185,
+      "elapsed_ms": 17019,
+      "extra": {
+        "detected_by": "#captcha-answer"
+      }
+    },
+    {
+      "seq": 12,
+      "type": "captcha_solved",
+      "timestamp": 1779974601.413,
+      "elapsed_ms": 18247,
+      "extra": {
+        "answer": "7",
+        "method": "dom_parsing"
+      }
+    },
+    {
+      "seq": 13,
+      "type": "mouse_move_to_input",
+      "timestamp": 1779974601.918,
+      "elapsed_ms": 18752,
+      "x": 629,
+      "y": 462,
+      "extra": {
+        "field": "captcha-answer"
+      }
+    },
+    {
+      "seq": 14,
+      "type": "click",
+      "timestamp": 1779974602.278,
+      "elapsed_ms": 19113,
+      "x": 629,
+      "y": 462,
+      "extra": {
+        "selector": "#captcha-answer"
+      }
+    },
+    {
+      "seq": 15,
+      "type": "input_text",
+      "timestamp": 1779974602.542,
+      "elapsed_ms": 19377,
+      "extra": {
+        "text": "7",
+        "length": 1
+      }
+    },
+    {
+      "seq": 16,
+      "type": "mouse_move",
+      "timestamp": 1779974603.385,
+      "elapsed_ms": 20219,
+      "x": 609,
+      "y": 500,
+      "extra": {
+        "step": 0,
+        "offset": [
+          -20,
+          38
+        ]
+      }
+    },
+    {
+      "seq": 17,
+      "type": "mouse_move",
+      "timestamp": 1779974603.735,
+      "elapsed_ms": 20569,
+      "x": 602,
+      "y": 471,
+      "extra": {
+        "step": 1,
+        "offset": [
+          -27,
+          9
+        ]
+      }
+    },
+    {
+      "seq": 18,
+      "type": "mouse_move",
+      "timestamp": 1779974604.102,
+      "elapsed_ms": 20936,
+      "x": 600,
+      "y": 494,
+      "extra": {
+        "step": 2,
+        "offset": [
+          -29,
+          32
+        ]
+      }
+    },
+    {
+      "seq": 19,
+      "type": "mouse_move",
+      "timestamp": 1779974604.483,
+      "elapsed_ms": 21317,
+      "x": 650,
+      "y": 442,
+      "extra": {
+        "step": 3,
+        "offset": [
+          21,
+          -20
+        ]
+      }
+    },
+    {
+      "seq": 20,
+      "type": "mouse_move",
+      "timestamp": 1779974604.834,
+      "elapsed_ms": 21668,
+      "x": 604,
+      "y": 457,
+      "extra": {
+        "step": 4,
+        "offset": [
+          -25,
+          -5
+        ]
+      }
+    },
+    {
+      "seq": 21,
+      "type": "mouse_move",
+      "timestamp": 1779974605.722,
+      "elapsed_ms": 22556,
+      "x": 629,
+      "y": 535,
+      "extra": {
+        "target": "captcha-submit"
+      }
+    },
+    {
+      "seq": 22,
+      "type": "click",
+      "timestamp": 1779974606.147,
+      "elapsed_ms": 22981,
+      "x": 629,
+      "y": 535,
+      "extra": {
+        "selector": "#captcha-submit",
+        "action": "submit_captcha"
+      }
+    },
+    {
+      "seq": 23,
+      "type": "response_wait",
+      "timestamp": 1779974611.148,
+      "elapsed_ms": 27982,
+      "extra": {
+        "wait_seconds": 5
+      }
+    },
+    {
+      "seq": 24,
+      "type": "result",
+      "timestamp": 1779974611.168,
+      "elapsed_ms": 28003,
+      "extra": {
+        "detected_as": "bot"
+      }
+    }
+  ]
+}
