@@ -80,7 +80,7 @@ export default function useEventLogger(options = {}) {
       },
       mousemove(e) {
         const now = Date.now();
-        if (now - lastMove < 100) return;
+        if (now - lastMove < 50) return;
         lastMove = now;
         const event = captureCommon(e, 'move');
         bufferRef.current.push(event);

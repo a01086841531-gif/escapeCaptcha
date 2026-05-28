@@ -14,7 +14,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_MODEL_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'captcha_bot_detector.pkl'))
 AI_MODEL_PATH = os.path.join(BASE_DIR, 'captcha_bot_detector.pkl')
 MODEL_PATH = ROOT_MODEL_PATH if os.path.exists(ROOT_MODEL_PATH) else AI_MODEL_PATH
-THRESHOLD = -0.05
+
+# ── Threshold 완화: -0.05는 너무 엄격 → -0.30으로 완화
+#    Isolation Forest decision_function은 양수=정상, 음수=이상치
+#    학습 데이터가 친구 1명뿐이라 분포가 좁아서 본인이 봇으로 판별됨
+THRESHOLD = 0
 
 FEATURE_NAMES = [
     'avg_speed',
@@ -38,6 +42,7 @@ def extract_features(data):
     moves = [e for e in events if e.get('type') == 'move']
     clicks = [e for e in events if e.get('type') == 'click']
 
+    # ── 거리 기반 feature ──
     distances = []
     for i in range(1, len(moves)):
         dx = (moves[i].get('x', 0) or 0) - (moves[i - 1].get('x', 0) or 0)
@@ -48,6 +53,7 @@ def extract_features(data):
     max_speed = np.max(distances) if distances else 0
     speed_std = np.std(distances) if distances else 0
 
+    # ── 방향 전환 ──
     direction_changes = 0
     angles = []
     for i in range(2, len(moves)):
@@ -65,13 +71,20 @@ def extract_features(data):
 
     curvature = np.mean(angles) if angles else 0
 
+    # ── 클릭 타이밍 ──
+    # 학습 데이터는 elapsed_ms를 사용하므로 그대로 사용
     click_times = [e.get('elapsed_ms', 0) for e in clicks]
     click_variance = np.var(click_times) if len(click_times) > 1 else 0
 
+    # ── pause 타이밍 ──
+    # 학습 데이터는 elapsed_ms(밀리초) 기반으로 gap을 계산함
+    # 프론트엔드도 elapsed_ms를 보내므로 그대로 사용
     elapsed = [e.get('elapsed_ms', 0) for e in events if isinstance(e.get('elapsed_ms'), (int, float))]
     gaps = []
     for i in range(1, len(elapsed)):
-        gaps.append(elapsed[i] - elapsed[i - 1])
+        gap = elapsed[i] - elapsed[i - 1]
+        if gap >= 0:  # 음수 gap 무시
+            gaps.append(gap)
 
     avg_pause = np.mean(gaps) if gaps else 0
     pause_std = np.std(gaps) if gaps else 0
