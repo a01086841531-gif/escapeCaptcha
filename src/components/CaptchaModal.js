@@ -119,6 +119,28 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
   const [userInput, setUserInput] = useState('');
   const [shaking, setShaking] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [verificationError, setVerificationError] = useState('');
+  const [lastScore, setLastScore] = useState(null);
+  const [lastThreshold, setLastThreshold] = useState(null);
+
+  // Attach global event logger while the modal is mounted
+  const eventLogger = useEventLogger();
+
+  const verifyCaptchaEvents = useCallback(async (events) => {
+    const response = await fetch('/api/captcha-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || '인증 모델 검증에 실패했습니다.');
+    }
+
+    const result = await response.json();
+    return result;
+  }, []);
 
   // Attach global event logger while the modal is mounted
   useEventLogger();
@@ -139,12 +161,35 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
     }
   }, [captchaType]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const trimmed = userInput.trim().toLowerCase();
     const correctAnswer = problem.answer.toLowerCase();
 
     if (trimmed === correctAnswer) {
-      onSuccess();
+      setVerificationError('');
+      const events = eventLogger?.getAllEvents?.() || [];
+
+      try {
+        const result = await verifyCaptchaEvents(events);
+        setLastScore(result?.score ?? null);
+        setLastThreshold(result?.threshold ?? null);
+        if (!result?.is_human) {
+          setAttempts((p) => p + 1);
+          setShaking(true);
+          setTimeout(() => setShaking(false), 500);
+          setVerificationError('행동 패턴이 로봇으로 감지되었습니다. 인증이 실패했습니다.');
+
+          if (attempts + 1 >= 3) {
+            setTimeout(() => onFail(), 600);
+          }
+
+          return;
+        }
+
+        onSuccess();
+      } catch (error) {
+        setVerificationError(error.message || '인증 모델 검증에 실패했습니다. 다시 시도해주세요.');
+      }
     } else {
       setAttempts((p) => p + 1);
       setShaking(true);
@@ -154,7 +199,7 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
         setTimeout(() => onFail(), 600);
       }
     }
-  }, [userInput, problem.answer, attempts, onSuccess, onFail]);
+  }, [userInput, problem.answer, attempts, onSuccess, onFail, eventLogger, verifyCaptchaEvents]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -269,6 +314,21 @@ export default function CaptchaModal({ onSuccess, onFail, onClose }) {
         >
           확인 <ArrowRight size={16} style={{ verticalAlign: 'middle', marginLeft: 6 }} />
         </button>
+
+        {verificationError && (
+          <p className={styles.captchaErrorMessage}>
+            {verificationError}
+          </p>
+        )}
+
+        {lastScore !== null && (
+          <p style={{ textAlign: 'center', marginTop: 8, fontSize: '0.85rem', color: '#666' }}>
+            모델 점수: {typeof lastScore === 'number' ? lastScore.toFixed(4) : String(lastScore)}
+            {lastThreshold !== null && (
+              <span> (임계값: {typeof lastThreshold === 'number' ? lastThreshold : String(lastThreshold)})</span>
+            )}
+          </p>
+        )}
 
         {attempts > 0 && (
           <p
