@@ -110,7 +110,12 @@ try:
     done.wait(timeout=WAIT_SEC)
 
     # 4) JS에서 이벤트 수집
-    raw_events = driver.execute_script("return window.__events || [];")
+    raw_events = []
+    try:
+        raw_events = driver.execute_script("return window.__events || [];")
+    except Exception:
+        print("\n  ⚠️ 브라우저 창이 먼저 닫혔거나 세션이 종료되어 마우스 이벤트를 가져오지 못했습니다.")
+        print("  (직접 푼 다음 브라우저를 끄지 않고 터미널에서 Enter를 누르셔야 정상 수집됩니다.)")
 
     # 5) elapsed_ms 계산 및 seq 부여
     events = []

@@ -1,0 +1,20 @@
+{
+  "session_id": "20260528_145432",
+  "label": "bot",
+  "start_time": 1779980072.882,
+  "end_time": 1779980076.824,
+  "duration_ms": 3942,
+  "total": 1,
+  "events": [
+    {
+      "seq": 0,
+      "type": "error",
+      "timestamp": 1779980076.819,
+      "elapsed_ms": 3938,
+      "extra": {
+        "type": "WebDriverException",
+        "reason": "Message: unknown error: net::ERR_CONNECTION_REFUSED\n  (Session info: chrome=148.0.7778.179)\nStacktrace:\n\tchromedriver!GetHandleVerifier [0x7ff6734d7de5+14895]\n\tchromedriver!GetHandleVerifier [0x7ff6734d7e50+14900]\n\tchromedriver!(No symbol) [0x7ff67323d5ad]\n\tchromedriver!(No symbol) [0x7ff67323a0e4]\n\tchromedriver!(No symbol) [0x7ff67322a4c1]\n\tchromedriver!(No symbol) [0x7ff67322c3af]\n\tchromedriver!(No symbol) [0x7ff67322aa63]\n\tchromedriver!(No symbol) [0x7ff67322a22b]\n\tchromedriver!(No symbol) [0x7ff673229ee1]\n\tchromedriver!(No symbol) [0x7ff673227b11]\n\tchromedriver!(No symbol) [0x7ff673228272]\n\tchromedriver!(No symbol) [0x7ff673241866]\n\tchromedriver!(No symbol) [0x7ff6732e56c4]\n\tchromedriver!(No symbol) [0x7ff6732c005a]\n\tchromedriver!(No symbol) [0x7ff6732e486f]\n\tchromedriver!(No symbol) [0x7ff673289df8]\n\tchromedriver!(No symbol) [0x7ff67328ace3]\n\tchromedriver!GetHandleVerifier [0x7ff6737ecc49+3296f9]\n\tchromedriver!GetHandleVerifier [0x7ff6737e7375+323e25]\n\tchromedriver!GetHandleVerifier [0x7ff67380bc82+348732]\n\tchromedriver!GetHandleVerifier [0x7ff6734f6045+32af5]\n\tchromedriver!GetHandleVerifier [0x7ff6734fecec+3b79c]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1bc4+1e674]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1d54+1e804]\n\tchromedriver!GetHandleVerifier [0x7ff6734c60e7+2b97]\n\tKERNEL32!BaseThreadInitThunk [0x7ffda224e957+17]\n\tntdll!RtlUserThreadStart [0x7ffda2a4427c+2c]\n"
+      }
+    }
+  ]
+}

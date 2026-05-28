@@ -127,7 +127,7 @@ def click_element(driver: WebDriver, selector: str) -> Optional[CoordinateTuple]
         return None
     
     try:
-        logger.debug(f"click_element: waiting for selector '{selector}' (timeout=15s)")
+        logger.debug(f"click_element: waiting for '{selector}' (timeout=15s)")
         el = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
         )
@@ -157,8 +157,12 @@ def click_element(driver: WebDriver, selector: str) -> Optional[CoordinateTuple]
         
     except TimeoutException:
         logger.error(f"Timeout: Element with selector '{selector}' not found within 15 seconds")
-        logger.error(f"  Current URL: {driver.current_url}")
-        logger.error(f"  Page title: {driver.title}")
+        try:
+            logger.error(f"  Current URL: {driver.current_url}")
+            logger.error(f"  Page title: {driver.title}")
+            logger.error(f"  Page source (500자): {driver.page_source[:500]}")
+        except Exception:
+            pass
         return None
     except NoSuchElementException:
         logger.error(f"NoSuchElementException: Element with selector '{selector}' not found")
@@ -251,8 +255,12 @@ def drag_element(driver: WebDriver, handle_sel: str, target_sel: str) -> Optiona
         
     except TimeoutException:
         logger.error(f"Timeout: Handle '{handle_sel}' or target '{target_sel}' not found within 15 seconds")
-        logger.error(f"  Current URL: {driver.current_url}")
-        logger.error(f"  Page title: {driver.title}")
+        try:
+            logger.error(f"  Current URL: {driver.current_url}")
+            logger.error(f"  Page title: {driver.title}")
+            logger.error(f"  Page source (500자): {driver.page_source[:500]}")
+        except Exception:
+            pass
         return None
     except NoSuchElementException:
         logger.error(f"NoSuchElementException: Handle '{handle_sel}' or target '{target_sel}' not found")

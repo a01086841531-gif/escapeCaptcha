@@ -5,53 +5,102 @@ import { KeyRound, Mail, Lock, Shield } from 'lucide-react';
 import styles from './page.module.css';
 import EscapeRoom from '@/components/EscapeRoom';
 import ResultModal from '@/components/ResultModal';
-
-/* ─── 허용된 테스트 계정 ─── */
-const ALLOWED_ACCOUNTS = {
-  'bot123@bot.com': 'bot123',
-  'person123@person.com': 'person123',
-  'test123@test.com': 'test123',
-};
+import { getSupabase } from '@/utils/supabase/client';
 
 export default function Home() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showEscapeRoom, setShowEscapeRoom] = useState(false);
   const [result, setResult] = useState(null); // { type: 'success'|'fail', message: string }
-  const [loginError, setLoginError] = useState('');
 
-  /* ─── 로그인 폼 제출: 테스트 계정 검증 후 캡챠로 이동 ─── */
+  /* ─── 모드 전환 ─── */
+  const handleToggleMode = useCallback(() => {
+    setIsSignUp((prev) => !prev);
+    setPasswordConfirm('');
+    setResult(null);
+  }, []);
+
+  /* ─── 로그인/회원가입 폼 제출 → 방탈출 뷰 전환 ─── */
   const handleLoginSubmit = useCallback(
     (e) => {
       e.preventDefault();
-      setLoginError('');
-
       if (!email.trim() || !password.trim()) {
-        setLoginError('이메일과 비밀번호를 모두 입력해주세요.');
+        alert('이메일과 비밀번호를 모두 입력해주세요.');
         return;
       }
-
-      // 테스트 계정 검증
-      const expected = ALLOWED_ACCOUNTS[email.trim()];
-      if (!expected || expected !== password) {
-        setLoginError('아이디와 비밀번호가 옳지 않습니다.');
-        return;
+      if (isSignUp) {
+        if (!passwordConfirm.trim()) {
+          alert('비밀번호 확인을 입력해주세요.');
+          return;
+        }
+        if (password !== passwordConfirm) {
+          alert('비밀번호가 일치하지 않습니다.');
+          return;
+        }
       }
-
-      // 계정 검증 성공 → 캡챠 화면으로 전환
       setShowEscapeRoom(true);
     },
-    [email, password]
+    [email, password, isSignUp, passwordConfirm]
   );
 
-  /* ─── 캡챠 성공 (봇 아님으로 판별) → 인증 성공 ─── */
-  const handleCaptchaSuccess = useCallback(() => {
-    setResult({ type: 'success', message: '캡챠 인증에 성공하였습니다! 인증이 완료되었습니다.' });
-  }, []);
+  /* ─── 캡챠 성공 → Supabase 로그인/회원가입 시도 ─── */
+  const handleCaptchaSuccess = useCallback(async () => {
+    const trimmedEmail = email.trim();
+    const trimmedPw = password.trim();
 
-  /* ─── 캡챠 실패 (봇으로 판별) → 인증 실패 ─── */
+    // ── 데모용 테스트 계정 강제 분기 ──
+    if (trimmedEmail === 'person123@person.com' || trimmedEmail === 'test123@test.com') {
+      if (trimmedPw === 'person123' || trimmedPw === 'test123') {
+        setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
+        return;
+      }
+    }
+    if (trimmedEmail === 'bot123@bot.com') {
+      if (trimmedPw === 'bot123') {
+        setResult({ type: 'fail', message: '로그인 실패: 봇 탐지 활성화' });
+        return;
+      }
+    }
+
+    try {
+      const sb = getSupabase();
+      if (isSignUp) {
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) {
+          setResult({ type: 'fail', message: '회원가입 실패: ' + error.message });
+        } else {
+          const autoConfirmed = data?.user && data?.session;
+          const message = autoConfirmed
+            ? '회원가입 및 로그인이 완료되었습니다!'
+            : '회원가입 성공! 이메일 인증 메일이 발송되었을 수 있으니 메일함을 확인해주세요.';
+          setResult({ type: 'success', message });
+        }
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          setResult({ type: 'fail', message: '로그인 실패: ' + error.message });
+        } else {
+          setResult({ type: 'success', message: '방탈출에 성공하셨습니다! 로그인이 완료되었습니다.' });
+        }
+      }
+    } catch (err) {
+      setResult({ type: 'fail', message: '서버 연결에 실패했습니다. 다시 시도해주세요.' });
+    }
+  }, [email, password, isSignUp]);
+
+  /* ─── 캡챠 실패 ─── */
   const handleCaptchaFail = useCallback(() => {
-    setResult({ type: 'fail', message: '봇으로 감지되었습니다. 인증에 실패했습니다.' });
+    setResult({ type: 'fail', message: '캡챠 인증에 실패했습니다. 다시 시도해주세요.' });
   }, []);
 
   /* ─── 결과 모달 닫기 → 로그인 화면으로 복귀 ─── */
@@ -107,9 +156,19 @@ export default function Home() {
           </div>
 
           {/* Title */}
-          <h1 className={styles.title}>ESCAPE LOGIN</h1>
+          <h1 className={styles.title}>{isSignUp ? 'ESCAPE REGISTER' : 'ESCAPE LOGIN'}</h1>
           <p className={styles.subtitle}>
-            방탈출을 통과해야 로그인됩니다. 당신의 지혜를 시험합니다.
+            {isSignUp ? (
+              <>
+                방탈출에 성공해야 회원가입할 수 있습니다.<br />
+                당신의 지혜를 시험합니다.
+              </>
+            ) : (
+              <>
+                방탈출에 성공해야 로그인할 수 있습니다.<br />
+                당신의 지혜를 시험합니다.
+              </>
+            )}
           </p>
 
           {/* Form */}
@@ -145,24 +204,57 @@ export default function Home() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   required
                 />
                 <Lock className={styles.inputIcon} />
               </div>
             </div>
 
-            {/* 로그인 에러 메시지 */}
-            {loginError && (
-              <div className={styles.errorMessage}>
-                {loginError}
+            {isSignUp && (
+              <div className={styles.inputGroup}>
+                <label className={styles.label} htmlFor="login-password-confirm">
+                  비밀번호 확인
+                </label>
+                <div className={styles.inputWrapper}>
+                  <input
+                    id="login-password-confirm"
+                    className={styles.input}
+                    type="password"
+                    placeholder="••••••••"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <Lock className={styles.inputIcon} />
+                </div>
               </div>
             )}
 
             <button id="login-submit" type="submit" className={styles.submitBtn}>
-              방탈출 시작
+              {isSignUp ? '회원가입' : '방탈출 시작'}
             </button>
           </form>
+
+          {/* Toggle Mode */}
+          <div className={styles.toggleMode}>
+            {isSignUp ? (
+              <>
+                이미 계정이 있으신가요?
+                <button type="button" className={styles.toggleLink} onClick={handleToggleMode}>
+                  로그인하기
+                </button>
+              </>
+            ) : (
+              <>
+                아직 계정이 없으신가요?
+                <button type="button" className={styles.toggleLink} onClick={handleToggleMode}>
+                  회원가입하기
+                </button>
+              </>
+            )}
+          </div>
 
           {/* Footer */}
           <div className={styles.footer}>

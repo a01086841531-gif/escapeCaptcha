@@ -1,0 +1,29 @@
+{
+  "session_id": "20260528_134040",
+  "label": "bot",
+  "start_time": 1779975640.185,
+  "end_time": 1779975646.472,
+  "duration_ms": 6288,
+  "total": 2,
+  "events": [
+    {
+      "seq": 0,
+      "type": "page_load",
+      "timestamp": 1779975641.876,
+      "elapsed_ms": 1691,
+      "extra": {
+        "url": "http://localhost:3000"
+      }
+    },
+    {
+      "seq": 1,
+      "type": "error",
+      "timestamp": 1779975646.413,
+      "elapsed_ms": 6228,
+      "extra": {
+        "type": "InvalidSessionIdException",
+        "reason": "Message: invalid session id: session deleted as the browser has closed the connection\nfrom disconnected: not connected to DevTools\n  (Session info: chrome=148.0.7778.179); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\n\tchromedriver!GetHandleVerifier [0x7ff6734d7de5+14895]\n\tchromedriver!GetHandleVerifier [0x7ff6734d7e50+14900]\n\tchromedriver!(No symbol) [0x7ff67323d5ad]\n\tchromedriver!(No symbol) [0x7ff673228a92]\n\tchromedriver!(No symbol) [0x7ff67324ee6c]\n\tchromedriver!(No symbol) [0x7ff6732c71b0]\n\tchromedriver!(No symbol) [0x7ff6732e4172]\n\tchromedriver!(No symbol) [0x7ff673289df8]\n\tchromedriver!(No symbol) [0x7ff67328ace3]\n\tchromedriver!GetHandleVerifier [0x7ff6737ecc49+3296f9]\n\tchromedriver!GetHandleVerifier [0x7ff6737e7375+323e25]\n\tchromedriver!GetHandleVerifier [0x7ff67380bc82+348732]\n\tchromedriver!GetHandleVerifier [0x7ff6734f6045+32af5]\n\tchromedriver!GetHandleVerifier [0x7ff6734fecec+3b79c]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1bc4+1e674]\n\tchromedriver!GetHandleVerifier [0x7ff6734e1d54+1e804]\n\tchromedriver!GetHandleVerifier [0x7ff6734c60e7+2b97]\n\tKERNEL32!BaseThreadInitThunk [0x7ffda224e957+17]\n\tntdll!RtlUserThreadStart [0x7ffda2a4427c+2c]\n"
+      }
+    }
+  ]
+}
